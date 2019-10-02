@@ -1,5 +1,6 @@
 import os
 from AutoEncoder import AutoEncoder
+from VariationalAutoEncoder import VariationalAutoEncoder
 from keras.datasets import mnist
 import pickle
 import numpy as np
@@ -28,43 +29,52 @@ def load_model(model_class, folder):
 
 
 SECTION = 'vae'
-RUN_ID = '0001'
+RUN_ID = '0002'
 DATA_NAME = 'digits'
 RUN_FOLDER = 'run/{}/'.format(SECTION)
 RUN_FOLDER += '_'.join([RUN_ID, DATA_NAME])
 
-# if not os.path.exists(RUN_FOLDER):
-#     os.mkdir(RUN_FOLDER)
-#     os.mkdir(os.path.join(RUN_FOLDER, 'viz'))
-#     os.mkdir(os.path.join(RUN_FOLDER, 'images'))
-#     os.mkdir(os.path.join(RUN_FOLDER, 'weights'))
-#     os.mkdir(os.path.join(RUN_FOLDER, 'params'))
+if not os.path.exists(RUN_FOLDER):
+    os.mkdir(RUN_FOLDER)
+    os.mkdir(os.path.join(RUN_FOLDER, 'viz'))
+    os.mkdir(os.path.join(RUN_FOLDER, 'images'))
+    os.mkdir(os.path.join(RUN_FOLDER, 'weights'))
+    os.mkdir(os.path.join(RUN_FOLDER, 'params'))
 
 MODE = 'build'
 
 (x_train, y_train), (x_test, y_test) = load_mnist()
 
-# AE = AutoEncoder(input_dim=(28, 28, 1), enc_conv_filters=[32, 64, 64, 64], enc_conv_kernal=[3, 3, 3, 3],
-#                  enc_conv_strides=[1, 2, 2, 1], dec_deconv_filters=[64, 64, 32, 1],
-#                  dec_deconv_kernal=[3, 3, 3, 3], dec_deconv_strides=[1, 2, 2, 1], z_dim=2)
-#
-# if MODE == 'build':
-#     AE.save(RUN_FOLDER)
-# else:
-#     AE.load_weights(os.path.join(RUN_FOLDER, 'weights/weights.h5'))
-#
-# AE.encoder.summary()
-# AE.decoder.summary()
-#
-# LEARNING_RATE = 0.0005
-# BATCH_SIZE = 32
-# INITIAL_EPOCH = 0
-#
-# AE.compile(LEARNING_RATE)
-#
-# AE.train(x_train, batch_size=BATCH_SIZE, epochs=400, run_folder=RUN_FOLDER, initial_epoch=INITIAL_EPOCH)
+AE = AutoEncoder(input_dim=(28, 28, 1), enc_conv_filters=[32, 64, 64, 64], enc_conv_kernal=[3, 3, 3, 3],
+                  enc_conv_strides=[1, 2, 2, 1], dec_deconv_filters=[64, 64, 32, 1],
+                  dec_deconv_kernal=[3, 3, 3, 3], dec_deconv_strides=[1, 2, 2, 1], z_dim=2)
 
-AE = load_model(AutoEncoder, RUN_FOLDER)
+VAE = VariationalAutoEncoder(input_dim=(28, 28, 1), enc_conv_filters=[32, 64, 64, 64], enc_conv_kernal=[3, 3, 3, 3],
+                  enc_conv_strides=[1, 2, 2, 1], dec_deconv_filters=[64, 64, 32, 1],
+                  dec_deconv_kernal=[3, 3, 3, 3], dec_deconv_strides=[1, 2, 2, 1], z_dim=2)
+
+if MODE == 'build':
+    VAE.save(RUN_FOLDER)
+else:
+    VAE.load_weights(os.path.join(RUN_FOLDER, 'weights/weights.h5'))
+
+VAE.encoder.summary()
+VAE.decoder.summary()
+#
+LEARNING_RATE = 0.0005
+R_LOSS_FACTOR = 1000
+BATCH_SIZE = 32
+EPOCHS = 100
+PRINT_EVERY_N_BATCHES = 100
+INITIAL_EPOCH = 0
+
+VAE.compile(LEARNING_RATE, R_LOSS_FACTOR)
+#
+VAE.train(x_train[:30000], batch_size=BATCH_SIZE, epochs=EPOCHS, run_folder=RUN_FOLDER,
+          print_every_n_batches=PRINT_EVERY_N_BATCHES, initial_epoch=INITIAL_EPOCH)
+
+
+# AE = load_model(AutoEncoder, RUN_FOLDER)
 
 
 def Reconstruction():
@@ -195,4 +205,5 @@ if __name__ == '__main__':
     # EncoderPrediction()
     # ImageGeneration()
     # ImageReconstruction()
-    AE.plot_model(RUN_FOLDER)
+    # AE.plot_model(RUN_FOLDER)
+    pass
