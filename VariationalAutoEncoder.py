@@ -14,7 +14,7 @@ import os
 import pickle
 
 
-class AutoEncoder():
+class VariationalAutoEncoder():
     def __init__(self, input_dim, enc_conv_filters, enc_conv_kernal, enc_conv_strides, dec_deconv_filters,
                  dec_deconv_kernal, dec_deconv_strides, use_batch_norm=False, use_dropout=False, z_dim=2):
         self.name = 'autoencoder'
@@ -66,7 +66,7 @@ class AutoEncoder():
             epsilon = K.random_normal(shape=K.shape(mu), mean=0, stddev=1.0)
             return mu + K.exp(log_var / 2) * epsilon
 
-        encoder_output = Lambda(sampling, name='encoder_output')[self.mu, self.log_var]
+        encoder_output = Lambda(sampling, name='encoder_output')([self.mu, self.log_var])
 
         self.encoder = Model(encoder_input, encoder_output)
 
@@ -101,16 +101,23 @@ class AutoEncoder():
 
         self.model = Model(model_input, model_output)
 
-    def compile(self, learning_rate):
+    def compile(self, learning_rate, r_loss_factor):
         self.learning_rate = learning_rate
         optimizer = Adam(lr=learning_rate)
 
-        def r_loss(y_true, y_pred):
-            return K.mean(K.square(y_true - y_pred), axis=[1, 2, 3])
+        def vae_r_loss(y_true, y_pred):
+            return r_loss_factor * K.mean(K.square(y_true - y_pred), axis=[1, 2, 3])
 
-        def kl_loss()
+        def vae_kl_loss(y_true, y_pred):
+            kl_loss = -0.5 * K.sum(1 + self.log_var - K.square(self.mu) - K.exp(self.log_var), axis=1)
+            return kl_loss
 
-        self.model.compile(optimizer=optimizer, loss=r_loss)
+        def vae_loss(y_true, y_pred):
+            r_loss = vae_r_loss(y_true, y_pred)
+            kl_loss = vae_kl_loss(y_true, y_pred)
+            return r_loss + kl_loss
+
+        self.model.compile(optimizer=optimizer, loss=vae_loss, metrics=[vae_r_loss, vae_kl_loss])
 
     def save(self, folder):
         if not os.path.exists(folder):
